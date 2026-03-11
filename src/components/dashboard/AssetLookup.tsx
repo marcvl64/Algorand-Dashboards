@@ -8,12 +8,11 @@ function ellipse(addr: string) {
 
 export function AssetLookup() {
   const [input, setInput] = useState('')
-  const { asset, loading, error, lookup } = useAssetLookup()
+  const { asset, searchResults, loading, error, lookup, lookupById } = useAssetLookup()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const id = Number(input)
-    if (id > 0) lookup(id)
+    if (input.trim().length > 0) lookup(input)
   }
 
   return (
@@ -21,19 +20,50 @@ export function AssetLookup() {
       <h3 className="text-sm font-semibold mb-3 opacity-60">Asset Lookup</h3>
       <form onSubmit={handleSubmit} className="flex gap-2 mb-4">
         <input
-          type="number"
+          type="text"
           className="input input-bordered input-sm flex-1"
-          placeholder="Enter Asset ID"
+          placeholder="Asset ID or name (e.g. USDC, Algo)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          min={1}
         />
-        <button type="submit" className="btn btn-sm btn-primary" disabled={Number(input) <= 0 || loading}>
+        <button type="submit" className="btn btn-sm btn-primary" disabled={input.trim().length === 0 || loading}>
           {loading ? <span className="loading loading-spinner loading-xs" /> : 'Lookup'}
         </button>
       </form>
 
       {error && <div className="alert alert-error text-sm mb-2">{error}</div>}
+
+      {searchResults.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs opacity-60 mb-2">Multiple assets found — select one:</p>
+          <div className="overflow-x-auto max-h-48 overflow-y-auto">
+            <table className="table table-xs">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Unit</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchResults.map((r) => (
+                  <tr key={r.id} className="hover">
+                    <td className="font-mono">{r.id}</td>
+                    <td>{r.name}</td>
+                    <td>{r.unitName}</td>
+                    <td>
+                      <button className="btn btn-xs btn-ghost" onClick={() => lookupById(r.id)}>
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {asset && (
         <div className="overflow-x-auto">

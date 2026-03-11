@@ -16,17 +16,25 @@ export interface AssetInfo {
   defaultFrozen: boolean
 }
 
+export interface AssetSearchResult {
+  id: number
+  name: string
+  unitName: string
+}
+
 export function useAssetLookup() {
   const { indexer } = useAlgoClients()
   const [asset, setAsset] = useState<AssetInfo | null>(null)
+  const [searchResults, setSearchResults] = useState<AssetSearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const lookup = useCallback(
+  const lookupById = useCallback(
     async (assetId: number) => {
       setLoading(true)
       setError(null)
       setAsset(null)
+      setSearchResults([])
       try {
         const result = await indexer.lookupAssetByID(assetId).do()
         const a = result.asset
@@ -54,5 +62,51 @@ export function useAssetLookup() {
     [indexer],
   )
 
-  return { asset, loading, error, lookup }
+  const searchByName = useCallback(
+    async (name: string) => {
+      setLoading(true)
+      setError(null)
+      setAsset(null)
+      setSearchResults([])
+      try {
+        const result = await indexer.searchForAssets().name(name).limit(10).do()
+        const results: AssetSearchResult[] = (result.assets ?? [])
+          .filter((a: { deleted?: boolean }) => !a.deleted)
+          .map((a: { index: bigint; params: { name?: string; unitName?: string } }) => ({
+            id: Number(a.index),
+            name: a.params.name ?? '',
+            unitName: a.params.unitName ?? '',
+          }))
+
+        if (results.length === 1) {
+          // Single match — load it directly
+          await lookupById(results[0].id)
+        } else if (results.length > 1) {
+          setSearchResults(results)
+        } else {
+          setError(`No assets found matching "${name}"`)
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to search assets')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [indexer, lookupById],
+  )
+
+  const lookup = useCallback(
+    async (input: string) => {
+      const trimmed = input.trim()
+      const asNum = Number(trimmed)
+      if (!isNaN(asNum) && asNum > 0 && String(asNum) === trimmed) {
+        await lookupById(asNum)
+      } else {
+        await searchByName(trimmed)
+      }
+    },
+    [lookupById, searchByName],
+  )
+
+  return { asset, searchResults, loading, error, lookup, lookupById }
 }

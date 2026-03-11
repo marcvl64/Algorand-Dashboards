@@ -12,7 +12,7 @@ export function AccountLookup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.length === 58) lookup(input)
+    if (input.trim().length > 0) lookup(input)
   }
 
   return (
@@ -22,11 +22,11 @@ export function AccountLookup() {
         <input
           type="text"
           className="input input-bordered input-sm flex-1 font-mono text-xs"
-          placeholder="Enter Algorand address (58 chars)"
+          placeholder="Address or NFD name (e.g. urtho.algo)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
         />
-        <button type="submit" className="btn btn-sm btn-primary" disabled={input.length !== 58 || loading}>
+        <button type="submit" className="btn btn-sm btn-primary" disabled={input.trim().length === 0 || loading}>
           {loading ? <span className="loading loading-spinner loading-xs" /> : 'Lookup'}
         </button>
       </form>
@@ -37,6 +37,12 @@ export function AccountLookup() {
         <div className="overflow-x-auto">
           <table className="table table-sm">
             <tbody>
+              {account.nfd && (
+                <tr>
+                  <td className="opacity-60">NFD</td>
+                  <td className="font-semibold">{account.nfd}</td>
+                </tr>
+              )}
               <tr>
                 <td className="opacity-60">Address</td>
                 <td className="font-mono text-xs break-all">{account.address}</td>
